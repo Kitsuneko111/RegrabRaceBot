@@ -1,8 +1,8 @@
 import requests
-import json
 import datetime
 from appJar import gui
 import math
+from typing import *
 
 
 class GUI:
@@ -28,11 +28,12 @@ class GUI:
         app.setEntryAlign("IP Addr", "center")
         app.addButton("help", self.helpFunc)
         app.setButton("help", "Click me for help!")
+        app.addLabel("status", "Waiting to connect")
         app.addHorizontalSeparator()
         app.addLabel("clock", "00:00:00")
         app.addHorizontalSeparator()
         app.addLabel("start", "Lap times").config(font="Arial 20 underline bold")
-        self.timer = app.after(10, self.checkStart)
+        self.timer = app.after(1000, self.checkStart)
         app.bindKey("s", self.stopClock)
         app.bindKey("r", self.resetClock)
 
@@ -91,13 +92,14 @@ class GUI:
         self.stopClock()
 
     def checkStart(self):
-        print(".")
+        #print(".")
         if self.api.checkStart():
             self.start = datetime.datetime.now()
             self.clock = datetime.datetime.now()
             self.timer = self.app.after(1, self.clockRun)
         else:
-            self.timer = self.app.after(1, self.checkStart)
+            self.app.set("status", "Not connected")
+            self.timer = self.app.after(100, self.checkStart)
 
 
 class API:
@@ -105,15 +107,34 @@ class API:
         config = open("config.txt", "r")
         self.IP = config.read().splitlines()[0]
         config.close()
+        self.orangeGates = [((15, 11), (2, -2), (4.1, 4)),
+                            ((15, 11), (2, -2), (-4, -4.1)),
+                            ((1, -1), (1, -1), (-35, -35.1)),
+                            ((-11, -15), (2, -2), (-4, -4.1)),
+                            ((-11, -15), (2, -2), (4.1, 4)),
+                            ((1, -1), (1, -1), (35.1, 35))]
+        self.blueGates = [((-11, -15), (2, -2), (-4, -4.1)),
+                          ((-11, -15), (2, -2), (4.1, 4)),
+                          ((1, -1), (1, -1), (35.1, 35)),
+                          ((15, 11), (2, -2), (4.1, 4)),
+                          ((15, 11), (2, -2), (-4, -4.1)),
+                          ((1, -1), (1, -1), (-35, -35.1))]
+        self.counterOrange = 0
+        self.counterBlue = 0
+        self.orangeLaps = 0
+        self.blueLaps = 0
+        self.orangePositions = []
+        self.bluePositions = []
 
-    def get(self):
+    def get(self) -> Union[Dict, bool]:
         try:
-            res = requests.get("http://"+self.IP+":6721/session")
+            res = requests.get("http://"+self.IP+":6721/session", timeout=0.1)
             res = res.json()
-            print(res)
+            #print(res)
             return res
         except requests.exceptions.ConnectionError:
-            print("connection error, are you in a game?")
+            #print("connection error, are you in a game?")
+            return False
 
     def size(self, vector):
         a = vector[0]
@@ -121,21 +142,55 @@ class API:
         c = vector[2]
         return math.pow((a**2+b**2+c**2), 1/3)
 
+    def averagePosition(self, a, b):
+        return (a[0]+b[0])//2, (a[1]+b[1])//2, (a[2]+b[2])//2
+
+    def checkGates(self, res):
+        if not res:
+            res = self.get()
+        blueGate = self.blueGates[self.counterBlue]
+        orangeGate = self.orangeGates[self.counterOrange]
+        bluePlayers = res["teams"][1]["players"]
+        orangePlayers = res["teams"][3]["players"]
+        bluePosAverage = self.averagePosition(bluePlayers[0]["position"], bluePlayers[1]["position"])
+        orangePosAverage = self.averagePosition(orangePlayers[0]["position"], orangePlayers[1]["position"])
+        if blueGate[0][0] > bluePosAverage[0] > blueGate[0][1] and\
+           blueGate[1][0] > bluePosAverage[1] > blueGate[1][1] and\
+           blueGate[2][0] > bluePosAverage[2] > blueGate[2][1]:
+            self.counterBlue = (self.counterBlue + 1) % len(self.blueGates)
+            if self.counterBlue == 0:
+                self.orangeLaps += 1
+        if orangeGate[0][0] > orangePosAverage[0] > orangeGate[0][1] and \
+           orangeGate[1][0] > orangePosAverage[1] > orangeGate[1][1] and \
+           orangeGate[2][0] > orangePosAverage[2] > orangeGate[2][1]:
+            self.counterOrange = (self.counterOrange + 1) % len(self.orangeGates)
+            if self.counterOrange == 0:
+                self.orangeLaps += 1
+        self.orangePositions.append(orangePosAverage)
+        self.bluePositions.append(bluePosAverage)
+
     def checkStart(self, res=None):
         if not res:
             res = self.get()
         if not res:
-            return False
-        print(res)
-        teams = res["teams"]
-        print(teams)
-        players = teams[1]["players"]
-        if len(players) > 3:
-            players.append(teams[3]["players"])
-        for player in players:
-            if self.size(player["velocity"]) > 5:
+            return False, "e"
+        try:
+            print(res)
+            teams = res["teams"]
+            print(teams)
+            blue = teams[1]["players"]
+            orange = []
+            if len(teams) > 3:
+                orange = teams[3]["players"]
+            if len(blue) < 2 or len(orange) < 2:
+                return False, "p"
+            if res["game_status"] != "playing":
+                return False, "r"
+            if res["game_clock"] < 0.1:
                 return True
-        return False
+            return False, "e"
+        except KeyError:
+            return False, "l"
 
 
 appGui = GUI()
