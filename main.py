@@ -6,7 +6,13 @@ from typing import *
 
 import pyttsx3
 engine = pyttsx3.init()
-engine.setProperty("voice", "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\MSTTS_V110_enAU_MatildaM")
+voices = engine.getProperty("voices")
+print(voices)
+vs = voices[0].id
+for voice in voices:
+    if "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\MSTTS_V110_enAU_MatildaM" == voice.id:
+        vs = voice.id
+engine.setProperty("voice", vs)
 engine.setProperty("rate", 170)
 
 
@@ -131,7 +137,7 @@ class API:
                             ((-11, -15), (2, -2), (-4, -4.1)),
                             ((-11, -15), (2, -2), (4.1, 4)),
                             ((1, -1), (1, -1), (35.1, 35))]
-        self.blueGates = [((-11, -15), (2, -2), (5, 3)),
+        self.blueGates = [#((-11, -15), (2, -2), (5, 3)),
             ((-11, -15), (2, -2), (-4, -4.1)),
                           ((-11, -15), (2, -2), (4.1, 4)),
                           ((1, -1), (1, -1), (35.1, 35)),
@@ -165,7 +171,7 @@ class API:
         return (a[0]+b[0])//2, (a[1]+b[1])//2, (a[2]+b[2])//2
 
     def checkGates(self, res=None):
-        print(self.counterBlue)
+        #print(self.counterBlue)
         if not res:
             res = self.get()
         if not res:
@@ -193,7 +199,7 @@ class API:
              #   self.orangeLaps += 1
         #self.orangePositions.append(orangePosAverage)
         self.bluePositions.append(bluePosAverage)
-        print(bluePosAverage)
+        #print(bluePosAverage)
 
     def checkStart(self, res=None):
         if not res:
