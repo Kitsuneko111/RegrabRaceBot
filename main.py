@@ -4,22 +4,6 @@ from appJar import gui
 import math
 from typing import *
 
-import pyttsx3
-engine = pyttsx3.init()
-voices = engine.getProperty("voices")
-print(voices)
-vs = voices[0].id
-for voice in voices:
-    if "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\MSTTS_V110_enAU_MatildaM" == voice.id:
-        vs = voice.id
-engine.setProperty("voice", vs)
-engine.setProperty("rate", 170)
-
-
-def say(text):
-    engine.say(text)
-    engine.runAndWait()
-
 
 class GUI:
     def __init__(self):
@@ -125,7 +109,6 @@ class GUI:
             self.app.setLabel("status", "ready")
 
 
-
 class API:
     def __init__(self):
         config = open("config.txt", "r")
@@ -137,8 +120,7 @@ class API:
                             ((-11, -15), (2, -2), (-4, -4.1)),
                             ((-11, -15), (2, -2), (4.1, 4)),
                             ((1, -1), (1, -1), (35.1, 35))]
-        self.blueGates = [#((-11, -15), (2, -2), (5, 3)),
-            ((-11, -15), (2, -2), (-4, -4.1)),
+        self.blueGates = [((-11, -15), (2, -2), (-4, -4.1)),
                           ((-11, -15), (2, -2), (4.1, 4)),
                           ((1, -1), (1, -1), (35.1, 35)),
                           ((15, 11), (2, -2), (4.1, 4)),
@@ -171,7 +153,7 @@ class API:
         return (a[0]+b[0])//2, (a[1]+b[1])//2, (a[2]+b[2])//2
 
     def checkGates(self, res=None):
-        #print(self.counterBlue)
+        print(self.counterBlue)
         if not res:
             res = self.get()
         if not res:
@@ -180,24 +162,23 @@ class API:
         orangeGate = self.orangeGates[self.counterOrange]
         #print(res["teams"][0])
         bluePlayers = res["teams"][0]["players"]
-        #orangePlayers = res["teams"][3]["players"]
-        bluePosAverage = self.averagePosition(bluePlayers[0]["head"]["position"], bluePlayers[0]["head"]["position"])
-        #orangePosAverage = self.averagePosition(orangePlayers[0]["position"], orangePlayers[1]["position"])
+        orangePlayers = res["teams"][3]["players"]
+        bluePosAverage = self.averagePosition(bluePlayers[0]["head"]["position"], bluePlayers[1]["head"]["position"])
+        orangePosAverage = self.averagePosition(orangePlayers[0]["position"], orangePlayers[1]["position"])
         if blueGate[0][0] >= bluePosAverage[0] >= blueGate[0][1] and\
            blueGate[1][0] >= bluePosAverage[1] >= blueGate[1][1] and\
            blueGate[2][0] >= bluePosAverage[2] >= blueGate[2][1]:
             self.counterBlue = (self.counterBlue + 1) % len(self.blueGates)
-            say("passed through gate"+str(self.counterBlue))
+            #say("passed through gate"+str(self.counterBlue))
             if self.counterBlue == 0:
                 self.orangeLaps += 1
-                say("Lap complete")
-        #if orangeGate[0][0] > orangePosAverage[0] > orangeGate[0][1] and \
-         #  orangeGate[1][0] > orangePosAverage[1] > orangeGate[1][1] and \
-          # orangeGate[2][0] > orangePosAverage[2] > orangeGate[2][1]:
-           # self.counterOrange = (self.counterOrange + 1) % len(self.orangeGates)
-            #if self.counterOrange == 0:
-             #   self.orangeLaps += 1
-        #self.orangePositions.append(orangePosAverage)
+        if orangeGate[0][0] > orangePosAverage[0] > orangeGate[0][1] and \
+           orangeGate[1][0] > orangePosAverage[1] > orangeGate[1][1] and \
+           orangeGate[2][0] > orangePosAverage[2] > orangeGate[2][1]:
+            self.counterOrange = (self.counterOrange + 1) % len(self.orangeGates)
+            if self.counterOrange == 0:
+                self.orangeLaps += 1
+        self.orangePositions.append(orangePosAverage)
         self.bluePositions.append(bluePosAverage)
         #print(bluePosAverage)
 
@@ -214,7 +195,7 @@ class API:
             orange = []
             if len(teams) > 3:
                 orange = teams[3]["players"]
-            if len(blue) < 1 or len(orange) < 0:
+            if len(blue) < 2 or len(orange) < 2:
                 return False, "p"
             if res["game_status"] != "playing":
                 return False, "r"
@@ -224,5 +205,5 @@ class API:
         except KeyError:
             return False, "l"
 
-say("ready")
+
 appGui = GUI()
