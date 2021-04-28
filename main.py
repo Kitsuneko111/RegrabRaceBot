@@ -23,6 +23,9 @@ def say(text):
 
 class GUI:
     def __init__(self):
+
+        self.olaps = 0
+        self.blaps = 0
         self.api = API()
 
         config = open("config.txt", "r")
@@ -64,13 +67,24 @@ class GUI:
         app.stopSubWindow()
 
         app.after(100, self.mainclock)
-        for i in range(10):
-            app.addLabel("test" + str(i), "test")
+        for i in range(5):
+            app.addLabel("B" + str(i), "BLap"+str(i), row=i+7)
             app.setLabelTooltip("test" + str(i), "gate 1: 00:00:00, gate 1: 00:00:00, gate 1: 00:00:00")
+        for i in range(5):
+            app.addLabel("O" + str(i), "OLap" + str(i), row=i + 7, column=2)
+            app.setLabelTooltip("test" + str(i), "gate 1: 00:00:00, gate 1: 00:00:00, gate 1: 00:00:00")
+
         app.go()
 
     def mainclock(self):
-        self.api.checkGates()
+        teamLapped = self.api.checkGates()
+        if teamLapped:
+            if teamLapped == "B":
+                self.app.setLabel("B"+str(self.blaps), self.clock-self.start)
+                self.blaps+=1
+            if teamLapped == "O":
+                self.app.setLabel("O"+str(self.blaps), self.clock-self.start)
+                self.blaps+=1
         self.checkStart()
         self.app.after(10, self.mainclock)
 
@@ -180,24 +194,28 @@ class API:
         orangeGate = self.orangeGates[self.counterOrange]
         #print(res["teams"][0])
         bluePlayers = res["teams"][0]["players"]
-        #orangePlayers = res["teams"][3]["players"]
-        bluePosAverage = self.averagePosition(bluePlayers[0]["head"]["position"], bluePlayers[0]["head"]["position"])
-        #orangePosAverage = self.averagePosition(orangePlayers[0]["position"], orangePlayers[1]["position"])
+        orangePlayers = res["teams"][3]["players"]
+        bluePosAverage = self.averagePosition(bluePlayers[0]["head"]["position"], bluePlayers[1]["head"]["position"])
+        orangePosAverage = self.averagePosition(orangePlayers[0]["head"]["position"], orangePlayers[1]["head"]["position"])
         if blueGate[0][0] >= bluePosAverage[0] >= blueGate[0][1] and\
            blueGate[1][0] >= bluePosAverage[1] >= blueGate[1][1] and\
            blueGate[2][0] >= bluePosAverage[2] >= blueGate[2][1]:
             self.counterBlue = (self.counterBlue + 1) % len(self.blueGates)
-            say("passed through gate"+str(self.counterBlue))
+            #say("blue passed through gate"+str(self.counterBlue))
             if self.counterBlue == 0:
                 self.orangeLaps += 1
-                say("Lap complete")
-        #if orangeGate[0][0] > orangePosAverage[0] > orangeGate[0][1] and \
-         #  orangeGate[1][0] > orangePosAverage[1] > orangeGate[1][1] and \
-          # orangeGate[2][0] > orangePosAverage[2] > orangeGate[2][1]:
-           # self.counterOrange = (self.counterOrange + 1) % len(self.orangeGates)
-            #if self.counterOrange == 0:
-             #   self.orangeLaps += 1
-        #self.orangePositions.append(orangePosAverage)
+                say("Blue Lap complete")
+                return "B"
+        if orangeGate[0][0] >= orangePosAverage[0] >= orangeGate[0][1] and \
+           orangeGate[1][0] >= orangePosAverage[1] >= orangeGate[1][1] and \
+           orangeGate[2][0] >= orangePosAverage[2] >= orangeGate[2][1]:
+            self.counterOrange = (self.counterOrange + 1) % len(self.orangeGates)
+            #say("orange passed through gate"+str(self.counterOrange))
+            if self.counterOrange == 0:
+                self.orangeLaps += 1
+                say("orange lap complete")
+                return "O"
+        self.orangePositions.append(orangePosAverage)
         self.bluePositions.append(bluePosAverage)
         #print(bluePosAverage)
 
@@ -214,7 +232,7 @@ class API:
             orange = []
             if len(teams) > 3:
                 orange = teams[3]["players"]
-            if len(blue) < 1 or len(orange) < 0:
+            if len(blue) < 2 or len(orange) < 2:
                 return False, "p"
             if res["game_status"] != "playing":
                 return False, "r"
