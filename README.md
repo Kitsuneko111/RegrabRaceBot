@@ -40,7 +40,7 @@ Most bugs should go in the issue tracker, but major bugs will be updated here. R
 - Somehow it registered blue team going through two gates while only orange moved through one
 ```
 ## How can I help?
-Pick something from [## TODO](TODO) and add it or fix it!
+Pick something from [## TODO](# TODO) and add it or fix it!
 
 Any help is appreciated, just try to follow the flow outlined above.
 
