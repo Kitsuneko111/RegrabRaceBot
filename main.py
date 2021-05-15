@@ -5,22 +5,6 @@ import math
 from typing import *
 import numpy as np
 
-import pyttsx3
-engine = pyttsx3.init()
-voices = engine.getProperty("voices")
-print(voices)
-vs = voices[0].id
-for voice in voices:
-    if "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices\\Tokens\\MSTTS_V110_enAU_MatildaM" == voice.id:
-        vs = voice.id
-engine.setProperty("voice", vs)
-engine.setProperty("rate", 170)
-
-
-def say(text):
-    engine.say(text)
-    engine.runAndWait()
-
 
 class GUI:
     def __init__(self):
@@ -268,7 +252,6 @@ class API:
             #say("blue passed through gate"+str(self.counterBlue))
             if self.counterBlue == 0:
                 self.orangeLaps += 1
-                say("Blue Lap complete")
                 returnStr += "B"
         if self.checkRay(self.orangePositions[-1], orangePosAverage, self.orangeGates[self.counterOrange]):
             self.counterOrange = (self.counterOrange + 1) % len(self.orangeGates)
@@ -276,7 +259,6 @@ class API:
             #say("orange passed through gate"+str(self.counterOrange))
             if self.counterOrange == 0:
                 self.orangeLaps += 1
-                say("orange lap complete")
                 returnStr += "O"
         self.orangePositions.append(orangePosAverage)
         self.bluePositions.append(bluePosAverage)
@@ -309,5 +291,4 @@ class API:
         except KeyError:
             return False, "l"
 
-say("ready")
 appGui = GUI()
